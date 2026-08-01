@@ -18,7 +18,9 @@ cp .env.example .env.local
 npm run dev
 ```
 
-No credentials are required for the public site or honest dashboard empty state. Never commit `.env.local`.
+Add the Supabase project URL and publishable key to `.env.local`, then apply the migrations in `supabase/migrations`. The first confirmed user automatically receives a private workspace and owner membership. Never commit `.env.local`.
+
+The public marketing page remains available without authentication. The dashboard is protected and all workspace-backed records are isolated with Postgres row-level security.
 
 ## Quality checks
 

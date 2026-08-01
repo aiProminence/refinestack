@@ -1,14 +1,23 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { signOut } from "@/app/login/actions";
+import { getUser, getWorkspace } from "@/lib/supabase/server";
 
 export const metadata = { title: "Dashboard" };
 
-export default function Dashboard() {
+export default async function Dashboard() {
+  const user = await getUser();
+
+  if (!user) redirect("/login");
+
+  const membership = await getWorkspace();
+
   return (
     <main style={{minHeight:"100vh",background:"#f5f0e7"}}>
       <header className="site-header shell">
         <Link className="wordmark" href="/">Prominence<span>.</span></Link>
-        <span className="eyebrow">MVP workspace</span>
-        <Link className="text-link" href="/">Exit dashboard</Link>
+        <span className="eyebrow">{membership?.workspaces?.name ?? "MVP workspace"}</span>
+        <form action={signOut}><button className="text-link link-button" type="submit">Sign out</button></form>
       </header>
       <section className="shell" style={{padding:"72px 0"}}>
         <span className="eyebrow">Observation ledger</span>
@@ -17,7 +26,7 @@ export default function Dashboard() {
         <div className="metric-panel" style={{marginTop:56}}>
           <div><span className="metric-kicker">AI Recommendation Share</span><h2>Not calculated</h2></div>
           <div><span className="metric-kicker">Successful observations</span><h2>0</h2></div>
-          <p>This honest empty state will be replaced by workspace-backed data in the provider integration milestone.</p>
+          <p>Signed in as {user.email}. Captures will appear here only after a provider returns a successful, provenance-backed observation.</p>
         </div>
       </section>
     </main>

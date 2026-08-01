@@ -20,6 +20,23 @@ nav { display:flex; gap:34px; color:#38504b; font-size:14px; }
 .hero-copy { max-width:720px; margin:0; color:#455a55; font-family:Georgia, "Times New Roman", serif; font-size:21px; line-height:1.55; }
 .hero-actions { display:flex; align-items:center; gap:28px; margin:38px 0 76px; }
 .text-link { font-size:14px; font-weight:700; border-bottom:1px solid #8c9b96; padding-bottom:3px; }
+.link-button { appearance:none; background:transparent; color:inherit; cursor:pointer; font:inherit; font-weight:700; padding:0 0 3px; }
+.auth-page { min-height:100vh; display:grid; grid-template-columns:minmax(0,1.1fr) minmax(420px,.9fr); }
+.auth-story { background:var(--forest); color:white; padding:clamp(40px,7vw,100px); display:flex; flex-direction:column; justify-content:space-between; }
+.auth-story h1 { max-width:720px; margin:32px 0; font-family:Georgia,serif; font-size:clamp(46px,6vw,78px); font-weight:400; letter-spacing:-.05em; line-height:1; }
+.auth-story p { max-width:590px; color:#cbd8d4; font-family:Georgia,serif; font-size:20px; }
+.auth-panel { background:var(--paper); padding:clamp(40px,8vw,110px); display:flex; align-items:center; }
+.auth-form { width:min(100%,500px); margin:auto; }
+.auth-form h2 { margin:18px 0 10px; font-family:Georgia,serif; font-size:42px; font-weight:400; letter-spacing:-.04em; }
+.auth-form>p { color:var(--muted); margin:0 0 36px; }
+.field { display:grid; gap:8px; margin:0 0 20px; }
+.field label { font-size:13px; font-weight:700; }
+.field input { width:100%; border:1px solid var(--line); background:white; color:var(--ink); font:inherit; padding:14px 15px; outline:none; }
+.field input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(168,121,56,.12); }
+.auth-form .button { border-radius:0; cursor:pointer; width:100%; }
+.form-note,.form-error,.form-success { margin-top:18px; font-size:13px; }
+.form-error { color:#a03f31; }
+.form-success { color:#276557; }
 .metric-panel { display:grid; grid-template-columns:1.1fr 1.5fr .9fr; gap:40px; background:var(--paper); border:1px solid var(--line); padding:38px 42px; box-shadow:0 20px 55px rgba(31,51,45,.07); }
 .metric-kicker { color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.12em; }
 .metric-panel h2 { margin:8px 0 0; font-family:Georgia, "Times New Roman", serif; font-size:28px; font-weight:400; }
@@ -58,4 +75,6 @@ footer .wordmark { color:var(--ink); }
   .capability-grid h3 { margin-top:28px; }
   .truth { padding:42px 28px; gap:28px; }
   footer { align-items:flex-start; flex-direction:column; justify-content:center; gap:6px; }
+  .auth-page { grid-template-columns:1fr; }
+  .auth-story { min-height:42vh; }
 }
