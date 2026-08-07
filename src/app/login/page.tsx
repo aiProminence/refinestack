@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { brand } from "@/lib/brand";
 import { signIn, signUp } from "./actions";
 
 export const metadata = { title: "Sign in" };
@@ -14,17 +15,17 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <main className="auth-page">
       <section className="auth-story">
-        <Link className="wordmark" href="/">Prominence<span>.</span></Link>
+        <Link className="wordmark" href="/">{brand.name}<span>.</span></Link>
         <div>
-          <span className="eyebrow light">AI recommendation intelligence</span>
+          <span className="eyebrow light">{brand.descriptor}</span>
           <h1>Evidence before scores.</h1>
-          <p>Every Prominence metric begins with a successful provider capture and preserves its source, method and timestamp.</p>
+          <p>Every {brand.name} metric begins with a successful provider capture and preserves its source, method and timestamp.</p>
         </div>
         <span className="eyebrow light">Private MVP access</span>
       </section>
       <section className="auth-panel">
         <form className="auth-form" action={isSignUp ? signUp : signIn}>
-          <span className="eyebrow">Prominence workspace</span>
+          <span className="eyebrow">{brand.name} workspace</span>
           <h2>{isSignUp ? "Create your account" : "Welcome back"}</h2>
           <p>{isSignUp ? "Your private workspace is created automatically." : "Sign in to your observation ledger."}</p>
           {isSignUp && <div className="field"><label htmlFor="fullName">Full name</label><input id="fullName" name="fullName" autoComplete="name" required /></div>}
@@ -33,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <button className="button" type="submit">{isSignUp ? "Create workspace" : "Sign in"}</button>
           {params.error && <div className="form-error" role="alert">{params.error}</div>}
           {params.success && <div className="form-success" role="status">{params.success}</div>}
-          <div className="form-note">{isSignUp ? "Already have access?" : "New to Prominence?"} <Link className="text-link" href={isSignUp ? "/login" : "/login?mode=signup"}>{isSignUp ? "Sign in" : "Create an account"}</Link></div>
+          <div className="form-note">{isSignUp ? "Already have access?" : `New to ${brand.name}?`} <Link className="text-link" href={isSignUp ? "/login" : "/login?mode=signup"}>{isSignUp ? "Sign in" : "Create an account"}</Link></div>
         </form>
       </section>
     </main>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { brand } from "@/lib/brand";
 
 const capabilities = [
   ["Observe", "Capture answers from configured AI and search providers with source, model, market and timestamp provenance."],
@@ -10,7 +11,7 @@ export default function Home() {
   return (
     <main>
       <header className="site-header shell">
-        <Link className="wordmark" href="/" aria-label="Prominence home">Prominence<span>.</span></Link>
+        <Link className="wordmark" href="/" aria-label={`${brand.name} home`}>{brand.name}<span>.</span></Link>
         <nav aria-label="Primary navigation">
           <a href="#method">Method</a>
           <Link href="/dashboard">Dashboard</Link>
@@ -19,9 +20,9 @@ export default function Home() {
       </header>
 
       <section className="hero shell">
-        <div className="eyebrow">AI recommendation intelligence</div>
-        <h1>Know when AI recommends your brand—and what earns the recommendation.</h1>
-        <p className="hero-copy">Prominence measures explicit brand recommendations across configured AI surfaces, preserves the evidence behind every observation, and shows where to improve.</p>
+        <div className="eyebrow">{brand.descriptor}</div>
+        <h1>{brand.promise}</h1>
+        <p className="hero-copy">{brand.name} measures explicit brand recommendations across configured AI surfaces, preserves the evidence behind every observation, and reveals where your brand can earn a stronger position.</p>
         <div className="hero-actions">
           <a className="button" href="#access">Join the private beta</a>
           <Link className="text-link" href="/dashboard">View the product foundation <span>↗</span></Link>
@@ -61,18 +62,18 @@ export default function Home() {
           <span className="eyebrow light">Product status</span>
           <h2>Built on observations, not invented scores.</h2>
         </div>
-        <p>Prominence is in private MVP development. The application will only display a metric when a real provider is configured and a successful, provenance-backed observation exists.</p>
+        <p>{brand.name} is in private MVP development. The application will only display a metric when a real provider is configured and a successful, provenance-backed observation exists.</p>
       </section>
 
       <section className="access shell" id="access">
         <span className="eyebrow">Private beta</span>
         <h2>Help shape the standard for AI recommendation measurement.</h2>
-        <a className="button" href="mailto:hello@prominence.ai?subject=Prominence%20private%20beta">Request early access</a>
+        <a className="button" href={`mailto:${brand.email}?subject=${encodeURIComponent(`${brand.name} private beta`)}`}>Request early access</a>
       </section>
 
       <footer className="shell">
-        <Link className="wordmark" href="/">Prominence<span>.</span></Link>
-        <p>AI recommendation intelligence · Private MVP</p>
+        <Link className="wordmark" href="/">{brand.name}<span>.</span></Link>
+        <p>{brand.descriptor} · Private MVP</p>
       </footer>
     </main>
   );

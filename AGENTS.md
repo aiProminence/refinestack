@@ -1,4 +1,4 @@
-# Prominence engineering guidance
+# RefineStack engineering guidance
 
 ## Product integrity
 
