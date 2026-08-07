@@ -1,11 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getPublicEnv } from "@/lib/env";
+import { authCookies, legacyAuthCookies } from "@/lib/supabase/cookies";
 
-const accessCookie = "prominence-access-token";
-const refreshCookie = "prominence-refresh-token";
+function getCookieValue(request: NextRequest, name: keyof typeof authCookies) {
+  return request.cookies.get(authCookies[name])?.value ?? request.cookies.get(legacyAuthCookies[name])?.value;
+}
 
 async function currentAccessToken(request: NextRequest) {
-  const token = request.cookies.get(accessCookie)?.value;
+  const token = getCookieValue(request, "access");
   const env = getPublicEnv();
   if (token) {
     const response = await fetch(`${env.supabaseUrl}/auth/v1/user`, {
@@ -15,7 +17,7 @@ async function currentAccessToken(request: NextRequest) {
     if (response.ok) return { token };
   }
 
-  const refreshToken = request.cookies.get(refreshCookie)?.value;
+  const refreshToken = getCookieValue(request, "refresh");
   if (!refreshToken) return null;
   const refresh = await fetch(`${env.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
     method: "POST",
@@ -46,15 +48,17 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (session && "access_token" in session) {
-    request.cookies.set(accessCookie, session.access_token);
+    request.cookies.set(authCookies.access, session.access_token);
     const response = NextResponse.next({ request });
     const secure = process.env.NODE_ENV === "production";
-    response.cookies.set(accessCookie, session.access_token, {
+    response.cookies.set(authCookies.access, session.access_token, {
       httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: session.expires_in,
     });
-    response.cookies.set(refreshCookie, session.refresh_token, {
+    response.cookies.set(authCookies.refresh, session.refresh_token, {
       httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30,
     });
+    response.cookies.delete(legacyAuthCookies.access);
+    response.cookies.delete(legacyAuthCookies.refresh);
     return response;
   }
 

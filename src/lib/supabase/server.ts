@@ -1,11 +1,16 @@
 import { cookies } from "next/headers";
 import { getPublicEnv } from "@/lib/env";
-
-const ACCESS_COOKIE = "prominence-access-token";
-const REFRESH_COOKIE = "prominence-refresh-token";
+import { authCookies, legacyAuthCookies } from "@/lib/supabase/cookies";
 
 type AuthUser = { id: string; email?: string; user_metadata?: { full_name?: string } };
 type AuthSession = { access_token: string; refresh_token: string; expires_in: number; user: AuthUser };
+
+function getCookieValue(
+  cookieStore: Awaited<ReturnType<typeof cookies>>,
+  name: keyof typeof authCookies,
+) {
+  return cookieStore.get(authCookies[name])?.value ?? cookieStore.get(legacyAuthCookies[name])?.value;
+}
 
 async function authFetch(path: string, init: RequestInit = {}) {
   const env = getPublicEnv();
@@ -23,10 +28,10 @@ async function authFetch(path: string, init: RequestInit = {}) {
 async function writeSession(session: AuthSession) {
   const cookieStore = await cookies();
   const secure = process.env.NODE_ENV === "production";
-  cookieStore.set(ACCESS_COOKIE, session.access_token, {
+  cookieStore.set(authCookies.access, session.access_token, {
     httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: session.expires_in,
   });
-  cookieStore.set(REFRESH_COOKIE, session.refresh_token, {
+  cookieStore.set(authCookies.refresh, session.refresh_token, {
     httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30,
   });
 }
@@ -61,7 +66,7 @@ export async function signUpWithPassword(email: string, password: string, fullNa
 
 export async function getUser() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE)?.value;
+  const token = getCookieValue(cookieStore, "access");
   if (!token) return null;
   const response = await authFetch("/user", { headers: { Authorization: `Bearer ${token}` } });
   return response.ok ? await response.json() as AuthUser : null;
@@ -69,7 +74,7 @@ export async function getUser() {
 
 export async function getWorkspace(token?: string) {
   const cookieStore = await cookies();
-  const accessToken = token ?? cookieStore.get(ACCESS_COOKIE)?.value;
+  const accessToken = token ?? getCookieValue(cookieStore, "access");
   if (!accessToken) return null;
   const env = getPublicEnv();
   const response = await fetch(
@@ -83,10 +88,12 @@ export async function getWorkspace(token?: string) {
 
 export async function signOutSession() {
   const cookieStore = await cookies();
-  const token = cookieStore.get(ACCESS_COOKIE)?.value;
+  const token = getCookieValue(cookieStore, "access");
   if (token) await authFetch("/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-  cookieStore.delete(ACCESS_COOKIE);
-  cookieStore.delete(REFRESH_COOKIE);
+  cookieStore.delete(authCookies.access);
+  cookieStore.delete(authCookies.refresh);
+  cookieStore.delete(legacyAuthCookies.access);
+  cookieStore.delete(legacyAuthCookies.refresh);
 }
 
-export const authCookieNames = { access: ACCESS_COOKIE, refresh: REFRESH_COOKIE };
+export const authCookieNames = authCookies;

@@ -1,10 +1,10 @@
-# Prominence
+# RefineStack
 
 AI recommendation intelligence for measuring when AI explicitly recommends a brand, why it earns that position, and what can improve it.
 
 ## Product truth
 
-Prominence does not treat mentions or citations as recommendations. AI Recommendation Share is calculated only from successful, provenance-backed observations:
+RefineStack does not treat mentions or citations as recommendations. AI Recommendation Share is calculated only from successful, provenance-backed observations:
 
 `explicit recommendations for the brand / all captured brand recommendations`
 
