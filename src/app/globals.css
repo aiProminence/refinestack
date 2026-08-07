@@ -18,6 +18,7 @@ nav { display:flex; gap:34px; color:#38504b; font-size:14px; }
 .eyebrow { display:block; color:var(--gold); font-size:12px; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
 .hero h1 { max-width:960px; margin:20px 0 28px; font-family:Georgia, "Times New Roman", serif; font-size:clamp(48px, 6.6vw, 88px); font-weight:400; letter-spacing:-.055em; line-height:.98; }
 .hero-copy { max-width:720px; margin:0; color:#455a55; font-family:Georgia, "Times New Roman", serif; font-size:21px; line-height:1.55; }
+.provider-note { margin:18px 0 0; color:var(--muted); font-size:13px; }
 .hero-actions { display:flex; align-items:center; gap:28px; margin:38px 0 76px; }
 .text-link { font-size:14px; font-weight:700; border-bottom:1px solid #8c9b96; padding-bottom:3px; }
 .link-button { appearance:none; background:transparent; color:inherit; cursor:pointer; font:inherit; font-weight:700; padding:0 0 3px; }
