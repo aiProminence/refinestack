@@ -164,7 +164,7 @@ Required platform variables:
 
 At least one provider must be configured for real captures:
 
-- `OPENAI_API_KEY` and optional `OPENAI_MODEL`
+- `AI_GATEWAY_API_KEY` for the preferred Vercel AI Gateway path, or `OPENAI_API_KEY` for a direct OpenAI fallback; optional `OPENAI_MODEL`
 - `ANTHROPIC_API_KEY` and optional `ANTHROPIC_MODEL`
 - `SERPAPI_API_KEY` for Google AI Overview capture
 

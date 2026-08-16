@@ -52,7 +52,7 @@ function openAIPricing(model: string, env: NodeJS.ProcessEnv): TokenPricing {
   const configured = explicitPricing(env, "OPENAI");
   if (configured) return configured;
   const prices: Record<string, [number, number]> = {
-    "gpt-5.6-sol": [5, 30], "gpt-5.6": [5, 30], "gpt-5.6-terra": [2, 12], "gpt-5.6-luna": [0.2, 1.2],
+    "gpt-5.6-sol": [5, 30], "openai/gpt-5.6-sol": [5, 30], "gpt-5.6": [5, 30], "gpt-5.6-terra": [2, 12], "gpt-5.6-luna": [0.2, 1.2],
   };
   const price = prices[model];
   if (!price) throw new WorkerConfigurationError("OpenAI model pricing is not configured.");
@@ -72,14 +72,15 @@ function anthropicPricing(model: string, env: NodeJS.ProcessEnv): TokenPricing {
 }
 
 export function configuredProviderKeys(env: NodeJS.ProcessEnv = process.env): ProviderKey[] {
-  return [env.OPENAI_API_KEY?.trim() ? "openai" as const : null, env.ANTHROPIC_API_KEY?.trim() ? "claude" as const : null, env.SERPAPI_API_KEY?.trim() ? "google_ai_overview" as const : null].filter((value): value is ProviderKey => value !== null);
+  return [(env.AI_GATEWAY_API_KEY?.trim() || env.OPENAI_API_KEY?.trim()) ? "openai" as const : null, env.ANTHROPIC_API_KEY?.trim() ? "claude" as const : null, env.SERPAPI_API_KEY?.trim() ? "google_ai_overview" as const : null].filter((value): value is ProviderKey => value !== null);
 }
 
 export function createRequestedAdapter(provider: ProviderKey, configuration: Json = {}, env: NodeJS.ProcessEnv = process.env): RequestedAdapter {
   const timeoutMs = timeout(env);
   if (provider === "openai") {
-    const model = env.OPENAI_MODEL?.trim() || "gpt-5.6-luna";
-    return { provider, adapter: createOpenAIAdapter({ apiKey: credential(env.OPENAI_API_KEY, "OpenAI"), model, pricing: openAIPricing(model, env), webSearchCostPerRequestUsd: finiteEnv(env.OPENAI_WEB_SEARCH_COST_USD, 0.01) }), accessMethod: "api", modelOrSurface: model, timeoutMs, tokenUsageExpected: true, costExpected: true };
+    const gatewayKey = env.AI_GATEWAY_API_KEY?.trim();
+    const model = env.OPENAI_MODEL?.trim() || (gatewayKey ? "openai/gpt-5.6-sol" : "gpt-5.6-luna");
+    return { provider, adapter: createOpenAIAdapter({ apiKey: credential(gatewayKey || env.OPENAI_API_KEY, gatewayKey ? "Vercel AI Gateway" : "OpenAI"), baseUrl: gatewayKey ? "https://ai-gateway.vercel.sh/v1" : undefined, model, pricing: openAIPricing(model, env), webSearchCostPerRequestUsd: finiteEnv(env.OPENAI_WEB_SEARCH_COST_USD, 0.01) }), accessMethod: "api", modelOrSurface: model, timeoutMs, tokenUsageExpected: true, costExpected: true };
   }
   if (provider === "claude") {
     const model = env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-5";

@@ -115,7 +115,7 @@ function safeErrorMessage(value: unknown) {
 }
 
 function targetDescriptor(provider: ProviderKey, env: NodeJS.ProcessEnv) {
-  if (provider === "openai") return { accessMethod: "api" as const, modelOrSurface: env.OPENAI_MODEL?.trim() || "gpt-5.6-luna" };
+  if (provider === "openai") return { accessMethod: "api" as const, modelOrSurface: env.OPENAI_MODEL?.trim() || (env.AI_GATEWAY_API_KEY?.trim() ? "openai/gpt-5.6-sol" : "gpt-5.6-luna") };
   if (provider === "claude") return { accessMethod: "api" as const, modelOrSurface: env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-5" };
   return { accessMethod: "search_api" as const, modelOrSurface: "Google AI Overview via SerpAPI" };
 }

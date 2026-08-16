@@ -63,7 +63,7 @@ export async function GET() {
   const worker: CheckState = operationalSecretState();
   const encryption = encryptionState();
   const providers = {
-    openai: Boolean(process.env.OPENAI_API_KEY),
+    openai: Boolean(process.env.AI_GATEWAY_API_KEY || process.env.OPENAI_API_KEY),
     claude: Boolean(process.env.ANTHROPIC_API_KEY),
     google_ai_overview: Boolean(process.env.SERPAPI_API_KEY),
   };

@@ -16,8 +16,22 @@ describe("worker adapter selection", () => {
 
   it("treats whitespace and missing credentials as unavailable configuration", () => {
     expect(configuredProviderKeys({ NODE_ENV: "test", OPENAI_API_KEY: "  ", ANTHROPIC_API_KEY: "x" } as NodeJS.ProcessEnv)).toEqual(["claude"]);
+    expect(configuredProviderKeys({ NODE_ENV: "test", AI_GATEWAY_API_KEY: "gateway-key" } as NodeJS.ProcessEnv)).toEqual(["openai"]);
     expect(() => createRequestedAdapter("openai", {}, { NODE_ENV: "test" } as NodeJS.ProcessEnv)).toThrow(WorkerConfigurationError);
     expect(() => createRequestedAdapter("google_ai_overview", {}, { NODE_ENV: "test" } as NodeJS.ProcessEnv)).toThrow(WorkerConfigurationError);
+  });
+
+  it("uses the Vercel AI Gateway when its project key is configured", () => {
+    const adapter = createRequestedAdapter("openai", {}, {
+      NODE_ENV: "test",
+      AI_GATEWAY_API_KEY: "gateway-key",
+    } as NodeJS.ProcessEnv);
+
+    expect(adapter).toMatchObject({
+      provider: "openai",
+      accessMethod: "api",
+      modelOrSurface: "openai/gpt-5.6-sol",
+    });
   });
 
   it("rejects unknown pricing and timeouts outside the provider contract", () => {
