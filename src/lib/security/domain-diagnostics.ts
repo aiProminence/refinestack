@@ -1,5 +1,6 @@
 import "server-only";
 
+import { isIP } from "node:net";
 import { canonicalizeEvidenceUrl, htmlToText } from "@/lib/evidence/ingest";
 import { safeExternalFetch } from "./external-url";
 
@@ -10,6 +11,30 @@ export type DomainDiagnostic = {
   readableCharacters: number;
   sparse: boolean;
 };
+
+export type ProjectDomainSaveDiagnostic = {
+  canonicalUrl: string;
+  diagnostic: DomainDiagnostic | null;
+  deferred: boolean;
+  deferredReason: string | null;
+};
+
+export function canonicalizeProjectDomain(value: string) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("Primary domain must be a valid absolute HTTPS URL.");
+  }
+  if (url.protocol !== "https:") throw new Error("Primary domain must be a valid absolute HTTPS URL.");
+  if (url.username || url.password) throw new Error("Primary domain cannot include embedded credentials.");
+  if (url.port && url.port !== "443") throw new Error("Primary domain must use the standard HTTPS port.");
+  const hostname = url.hostname.replace(/^\[|\]$/gu, "").toLowerCase();
+  if (!hostname || isIP(hostname) || hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local")) {
+    throw new Error("Primary domain must identify a public HTTPS hostname.");
+  }
+  return canonicalizeEvidenceUrl(url.toString());
+}
 
 function retrievalError(error: unknown): Error {
   const detail = error instanceof Error ? error.message : "Unknown retrieval failure.";
@@ -63,4 +88,27 @@ export async function diagnoseProjectDomain(
     readableCharacters: readable.length,
     sparse: readable.length < 200 || (readable.match(/[\p{L}\p{N}]+/gu)?.length ?? 0) < 30,
   };
+}
+
+export async function diagnoseProjectDomainForSave(
+  value: string,
+  fetcher: typeof safeExternalFetch = safeExternalFetch,
+): Promise<ProjectDomainSaveDiagnostic> {
+  const canonicalUrl = canonicalizeProjectDomain(value);
+  try {
+    const diagnostic = await diagnoseProjectDomain(canonicalUrl, fetcher);
+    return {
+      canonicalUrl: diagnostic.canonicalUrl,
+      diagnostic,
+      deferred: false,
+      deferredReason: null,
+    };
+  } catch (error) {
+    return {
+      canonicalUrl,
+      diagnostic: null,
+      deferred: true,
+      deferredReason: error instanceof Error ? error.message : "Primary domain verification could not be completed.",
+    };
+  }
 }

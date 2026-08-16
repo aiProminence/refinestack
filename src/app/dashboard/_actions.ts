@@ -30,7 +30,7 @@ import type { WorkspaceRole } from "@/types/contracts";
 import { inviteWorkspaceMember } from "@/lib/auth/invitations";
 import { createAdminClient } from "@/lib/supabase/server";
 import { retrieveEvidenceUrl } from "@/lib/evidence/ingest";
-import { diagnoseProjectDomain } from "@/lib/security/domain-diagnostics";
+import { diagnoseProjectDomainForSave } from "@/lib/security/domain-diagnostics";
 import { getDashboardContext } from "./_context";
 
 function required(formData: FormData, key: string) {
@@ -90,9 +90,13 @@ export async function saveProjectAction(formData: FormData) {
     const languages = required(formData, "languages").split(",").map((item) => item.trim()).filter(Boolean);
     let verifiedDomain = domain;
     if (domain) {
-      const diagnostic = await diagnoseProjectDomain(domain);
-      verifiedDomain = diagnostic.canonicalUrl;
-      if (diagnostic.sparse) savedMessage = "Project saved. The primary domain returned sparse readable content; add explicit evidence before relying on it.";
+      const result = await diagnoseProjectDomainForSave(domain);
+      verifiedDomain = result.canonicalUrl;
+      if (result.deferred) {
+        savedMessage = `Project saved. Primary domain verification was deferred: ${result.deferredReason} You can continue setup and add explicit evidence.`;
+      } else if (result.diagnostic?.sparse) {
+        savedMessage = "Project saved. The primary domain returned sparse readable content; add explicit evidence before relying on it.";
+      }
     }
     if (!languages.length) throw new Error("At least one language is required.");
     if (id) {
