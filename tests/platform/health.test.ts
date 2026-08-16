@@ -10,6 +10,7 @@ const requiredNames = [
   "WORKER_SECRET",
   "CRON_SECRET",
   "OPENAI_API_KEY",
+  "AI_GATEWAY_API_KEY",
   "ANTHROPIC_API_KEY",
   "SERPAPI_API_KEY",
 ] as const;
