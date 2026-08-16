@@ -6,33 +6,35 @@ import type { WorkspaceRole } from "@/types/contracts";
 
 const navigation = [
   {
-    label: "Understand",
+    label: "Monitor",
     items: [
       { href: "/dashboard", label: "Overview", exact: true },
-      { href: "/dashboard/decisions", label: "Decision map" },
-      { href: "/dashboard/answers", label: "Live answers" },
-    ],
-  },
-  {
-    label: "Build the study",
-    items: [
-      { href: "/dashboard/setup", label: "Project setup" },
-      { href: "/dashboard/questions", label: "Questions" },
-      { href: "/dashboard/evidence", label: "Evidence" },
-    ],
-  },
-  {
-    label: "Operate",
-    items: [
+      { href: "/dashboard/answers", label: "AI answers" },
       { href: "/dashboard/runs", label: "Monitoring runs" },
-      { href: "/dashboard/actions", label: "Action backlog" },
-      { href: "/dashboard/analytics", label: "Analytics" },
-      { href: "/dashboard/operations", label: "Operations" },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { href: "/dashboard/analytics", label: "Visibility analytics" },
+      { href: "/dashboard/decisions", label: "Decision map" },
+      { href: "/dashboard/analytics/competitors", label: "Competitors" },
+      { href: "/dashboard/analytics/evidence", label: "Citation intelligence" },
+    ],
+  },
+  {
+    label: "Improve",
+    items: [
+      { href: "/dashboard/actions", label: "Action queue" },
+      { href: "/dashboard/evidence", label: "Evidence library" },
+      { href: "/dashboard/questions", label: "Prompt library" },
     ],
   },
   {
     label: "Manage",
     items: [
+      { href: "/dashboard/setup", label: "Project setup" },
+      { href: "/dashboard/operations", label: "Operations" },
       { href: "/dashboard/usage", label: "Usage" },
       { href: "/dashboard/team", label: "Team" },
       { href: "/dashboard/settings", label: "Settings" },
