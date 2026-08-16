@@ -151,10 +151,13 @@ async function generateAndSendMailboxVerification(input: {
       ...(metadata ? { data: metadata } : {}),
     },
   });
-  if (error || !data?.properties?.action_link) {
+  if (error || !data?.properties?.hashed_token) {
     throw new InvitationNoticeDeliveryError(safeProviderFailureCode("supabase_auth", error));
   }
-  await sendMailboxVerificationLink(input.email, data.properties.action_link);
+  const confirmation = new URL("/auth/confirm", appUrl());
+  confirmation.searchParams.set("token_hash", data.properties.hashed_token);
+  confirmation.searchParams.set("next", input.callback.searchParams.get("next") ?? "/dashboard");
+  await sendMailboxVerificationLink(input.email, confirmation.toString());
 }
 
 async function deliverInvitationNotice(input: {

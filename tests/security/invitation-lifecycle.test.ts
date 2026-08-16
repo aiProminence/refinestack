@@ -89,7 +89,7 @@ describe("invitation delivery and OTP lifecycle", () => {
       })
       .mockResolvedValueOnce({ data: { status: "sent" }, error: null });
     const generateLink = vi.fn().mockResolvedValue({
-      data: { properties: { action_link: "https://auth.example.com/verify?token=secret" } },
+      data: { properties: { hashed_token: "hashed_token_for_mailbox_verification" } },
       error: null,
     });
     const admin = {
@@ -121,6 +121,12 @@ describe("invitation delivery and OTP lifecycle", () => {
     expect(fetch).toHaveBeenCalledWith("https://api.resend.com/emails", expect.objectContaining({
       method: "POST",
       body: expect.stringContaining("Verify your RefineStack mailbox"),
+    }));
+    expect(fetch).toHaveBeenCalledWith("https://api.resend.com/emails", expect.objectContaining({
+      body: expect.stringContaining("https://app.example.com/auth/confirm?token_hash=hashed_token_for_mailbox_verification"),
+    }));
+    expect(fetch).not.toHaveBeenCalledWith("https://api.resend.com/emails", expect.objectContaining({
+      body: expect.stringContaining("auth.example.com/verify"),
     }));
     expect(rpc).toHaveBeenNthCalledWith(2, "finalize_invitation_mailbox_otp", expect.objectContaining({
       p_attempt_id: "44444444-4444-4444-8444-444444444444",
@@ -161,7 +167,7 @@ describe("invitation delivery and OTP lifecycle", () => {
       auth: { admin: {
         listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
         generateLink: vi.fn().mockResolvedValue({
-          data: { properties: { action_link: "https://auth.example.com/verify?token=secret" } },
+          data: { properties: { hashed_token: "hashed_token_for_mailbox_verification" } },
           error: null,
         }),
       } },
