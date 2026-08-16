@@ -16,7 +16,7 @@ const endpoints = [
 ];
 
 function Code({ children }: { children: string }) {
-  return <pre className="api-code-block"><code>{children}</code></pre>;
+  return <pre className="api-code-block" tabIndex={0} aria-label="API code example"><code>{children}</code></pre>;
 }
 
 export default function ApiDocsPage() {
@@ -34,7 +34,7 @@ export default function ApiDocsPage() {
 
     <section>
       <h2>Endpoints</h2>
-      <div className="table-wrap"><table>
+      <div className="table-wrap" tabIndex={0} role="region" aria-label="API endpoints"><table>
         <thead><tr><th>Method</th><th>Path</th><th>Purpose</th><th>Scope</th></tr></thead>
         <tbody>{endpoints.map(([method, path, purpose, scope]) => <tr key={`${method}-${path}`}>
           <td><code>{method}</code></td><td><code>{path}</code></td><td>{purpose}</td><td><code>{scope}</code></td>
