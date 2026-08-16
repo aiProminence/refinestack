@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { brand } from "@/lib/brand";
 import "./globals.css";
 
@@ -15,6 +16,8 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // A per-request render lets Proxy attach one unpredictable CSP nonce to every framework script.
+  await connection();
   return <html lang="en"><body>{children}</body></html>;
 }

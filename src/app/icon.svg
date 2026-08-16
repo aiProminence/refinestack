@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="RefineStack">
+  <rect width="64" height="64" rx="14" fill="#173b32"/>
+  <path d="M17 17h25c6 0 10 4 10 10s-4 10-10 10H28v10h18" fill="none" stroke="#f5eddc" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28 37 44 50" fill="none" stroke="#c99b43" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="18" cy="47" r="3" fill="#c99b43"/>
+</svg>

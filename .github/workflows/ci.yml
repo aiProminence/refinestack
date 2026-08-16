@@ -12,9 +12,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
+      - run: npm audit --omit=dev
+      - name: Install browser engines
+        run: npx playwright install --with-deps chromium webkit
+      - run: npm run check
+      - name: Reject committed environment secrets
+        run: |
+          if git ls-files | grep -E '(^|/)\.env(\.|$)' | grep -v '\.env\.example$'; then
+            echo "Committed environment file detected"
+            exit 1
+          fi

@@ -20,6 +20,8 @@ npm run dev
 
 Add the Supabase project URL and publishable key to `.env.local`, then apply the migrations in `supabase/migrations`. The first confirmed user automatically receives a private workspace and owner membership. Never commit `.env.local`.
 
+Production worker execution is scheduled every five minutes by Supabase Cron. After deployment, provision `refinestack_worker_url` and `refinestack_worker_secret` in Supabase Vault. The same secret must be configured as `WORKER_SECRET` in the deployment environment. The scheduled function remains inert until both Vault entries exist.
+
 The public marketing page remains available without authentication. The dashboard is protected and all workspace-backed records are isolated with Postgres row-level security. Account creation is invitation-only: add an approved email to `private.beta_invites`, then send that person the private `/login?mode=signup` URL.
 
 The initial monitoring surfaces are OpenAI, Claude, and Google AI Overviews. Provider access methods must remain explicit: API captures must not be presented as personalised consumer-session results.

@@ -1,0 +1,72 @@
+.body {
+  margin: 0;
+  background: #f5f0e7;
+  color: #17342e;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.main {
+  display: grid;
+  min-height: 100vh;
+  width: min(720px, calc(100% - 40px));
+  margin: auto;
+  align-content: center;
+  justify-items: start;
+  padding-block: 48px;
+}
+
+.main h1 {
+  margin: 14px 0 28px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 6vw, 70px);
+  font-weight: 400;
+  letter-spacing: -.05em;
+  line-height: 1.02;
+}
+
+.main p {
+  max-width: 580px;
+  margin: 0 0 30px;
+  color: #62706c;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  color: #80571f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.button {
+  border: 1px solid #12362f;
+  background: #12362f;
+  color: white;
+  cursor: pointer;
+  padding: 14px 22px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.link {
+  border-bottom: 1px solid #8c9b96;
+  color: #17342e;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.button:focus-visible,
+.link:focus-visible {
+  outline: 3px solid #d09a4c;
+  outline-offset: 3px;
+}
