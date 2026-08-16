@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
-function contentSecurityPolicy(nonce: string) {
+function contentSecurityPolicy(nonce: string, secureTransport: boolean) {
   const development = process.env.NODE_ENV === "development";
   return [
     "default-src 'self'",
@@ -14,13 +14,15 @@ function contentSecurityPolicy(nonce: string) {
     "base-uri 'self'",
     "form-action 'self'",
     "object-src 'none'",
-    ...(development ? [] : ["upgrade-insecure-requests"]),
+    ...(development || !secureTransport ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 }
 
 export async function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID(), "utf8").toString("base64");
-  const policy = contentSecurityPolicy(nonce);
+  const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim().toLowerCase();
+  const secureTransport = request.nextUrl.protocol === "https:" || forwardedProtocol === "https";
+  const policy = contentSecurityPolicy(nonce, secureTransport);
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
   requestHeaders.set("Content-Security-Policy", policy);

@@ -55,8 +55,8 @@ test("login exposes sign-in, recovery, and password-update modes without account
 
   await page.goto("/login?mode=update-password");
   await expect(page.getByRole("heading", { level: 2, name: "Choose a new password" })).toBeVisible();
-  await expect(page.getByLabel("New password")).toHaveAttribute("minlength", "12");
-  await expect(page.getByLabel("Confirm new password")).toHaveAttribute("autocomplete", "new-password");
+  await expect(page.getByLabel("New password", { exact: true })).toHaveAttribute("minlength", "12");
+  await expect(page.getByLabel("Confirm new password", { exact: true })).toHaveAttribute("autocomplete", "new-password");
   await expectNoSeriousAccessibilityViolations(page);
 });
 
