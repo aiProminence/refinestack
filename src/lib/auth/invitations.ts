@@ -110,6 +110,53 @@ async function sendInvitationNotice(email: string, invitationId: string, signupP
   if (!response.ok) throw new InvitationNoticeDeliveryError(`resend_http_${response.status}`);
 }
 
+async function sendMailboxVerificationLink(email: string, actionLink: string) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.INVITATION_FROM_EMAIL;
+  if (!apiKey || !from) throw new InvitationNoticeDeliveryError("resend_not_configured");
+  let response: Response;
+  try {
+    response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: [email],
+        subject: "Verify your RefineStack mailbox",
+        text: `Open this one-time link to verify your mailbox and continue your RefineStack invitation: ${actionLink}`,
+        html: `<p>Verify your mailbox to continue your RefineStack invitation.</p><p><a href="${actionLink.replaceAll("&", "&amp;")}">Verify mailbox</a></p><p>This link expires after use.</p>`,
+      }),
+    });
+  } catch {
+    throw new InvitationNoticeDeliveryError("resend_transport");
+  }
+  if (!response.ok) throw new InvitationNoticeDeliveryError(`resend_http_${response.status}`);
+}
+
+async function generateAndSendMailboxVerification(input: {
+  admin: ReturnType<typeof createAdminClient>;
+  email: string;
+  callback: URL;
+  invitationId?: string;
+  invitationProof?: string;
+}) {
+  const metadata = input.invitationId && input.invitationProof
+    ? { invitation_id: input.invitationId, invitation_proof: input.invitationProof }
+    : undefined;
+  const { data, error } = await input.admin.auth.admin.generateLink({
+    type: "magiclink",
+    email: input.email,
+    options: {
+      redirectTo: input.callback.toString(),
+      ...(metadata ? { data: metadata } : {}),
+    },
+  });
+  if (error || !data?.properties?.action_link) {
+    throw new InvitationNoticeDeliveryError(safeProviderFailureCode("supabase_auth", error));
+  }
+  await sendMailboxVerificationLink(input.email, data.properties.action_link);
+}
+
 async function deliverInvitationNotice(input: {
   email: string;
   invitationId: string;
@@ -248,23 +295,22 @@ export async function requestInvitationMailboxOtp(invitationId: string, claim: s
   destination.searchParams.set("invitation", invitation.id);
   const callback = new URL("/auth/callback", appUrl());
   callback.searchParams.set("next", `${destination.pathname}${destination.search}`);
-  const client = await createClient();
-  const { error } = await client.auth.signInWithOtp({
-    email: admission.email,
-    options: {
-      shouldCreateUser: admission.should_create_user,
-      emailRedirectTo: callback.toString(),
-      data: admission.should_create_user
-        ? { invitation_id: invitation.id, invitation_proof: claim }
-        : undefined,
-    },
-  });
-  if (error) {
+  try {
+    await generateAndSendMailboxVerification({
+      admin,
+      email: admission.email,
+      callback,
+      invitationId: admission.should_create_user ? invitation.id : undefined,
+      invitationProof: admission.should_create_user ? claim : undefined,
+    });
+  } catch (error) {
     await invitationRpcClient(admin).rpc("finalize_invitation_mailbox_otp", {
       p_invitation_id: invitation.id,
       p_attempt_id: admission.attempt_id,
       p_succeeded: false,
-      p_failure_code: safeProviderFailureCode("supabase_auth", error),
+      p_failure_code: error instanceof InvitationNoticeDeliveryError
+        ? error.failureCode
+        : safeProviderFailureCode("mailbox_delivery", error),
     });
     throw new Error("The mailbox verification link could not be sent.");
   }
@@ -299,16 +345,16 @@ export async function requestFreshMailboxVerification(invitationId: string) {
   destination.searchParams.set("invitation", invitation.id);
   const callback = new URL("/auth/callback", appUrl());
   callback.searchParams.set("next", `${destination.pathname}${destination.search}`);
-  const { error } = await client.auth.signInWithOtp({
-    email: admission.email,
-    options: { shouldCreateUser: false, emailRedirectTo: callback.toString() },
-  });
-  if (error) {
+  try {
+    await generateAndSendMailboxVerification({ admin, email: admission.email, callback });
+  } catch (error) {
     await invitationRpcClient(admin).rpc("finalize_invitation_mailbox_otp", {
       p_invitation_id: invitation.id,
       p_attempt_id: admission.attempt_id,
       p_succeeded: false,
-      p_failure_code: safeProviderFailureCode("supabase_auth", error),
+      p_failure_code: error instanceof InvitationNoticeDeliveryError
+        ? error.failureCode
+        : safeProviderFailureCode("mailbox_delivery", error),
     });
     throw new Error("The fresh mailbox link could not be sent.");
   }
