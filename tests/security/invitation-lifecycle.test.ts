@@ -88,14 +88,20 @@ describe("invitation delivery and OTP lifecycle", () => {
         error: null,
       })
       .mockResolvedValueOnce({ data: { status: "sent" }, error: null });
+    const generateLink = vi.fn().mockResolvedValue({
+      data: { properties: { action_link: "https://auth.example.com/verify?token=secret" } },
+      error: null,
+    });
     const admin = {
       from: vi.fn(() => invitationQuery),
       rpc,
-      auth: { admin: { listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }) } },
+      auth: { admin: {
+        listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
+        generateLink,
+      } },
     };
-    const signInWithOtp = vi.fn().mockResolvedValue({ error: null });
     mocks.createAdminClient.mockReturnValue(admin);
-    mocks.createClient.mockResolvedValue({ auth: { signInWithOtp } });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 202 })));
 
     await requestInvitationMailboxOtp(invitation.id, invitationClaim);
 
@@ -104,9 +110,17 @@ describe("invitation delivery and OTP lifecycle", () => {
       p_authenticated_user_id: null,
       p_existing_user_id: null,
     }));
-    expect(signInWithOtp).toHaveBeenCalledWith(expect.objectContaining({
+    expect(generateLink).toHaveBeenCalledWith(expect.objectContaining({
+      type: "magiclink",
       email: invitation.email,
-      options: expect.objectContaining({ shouldCreateUser: true }),
+      options: expect.objectContaining({
+        redirectTo: "https://app.example.com/auth/callback?next=%2Faccept-invite%3Finvitation%3D11111111-1111-4111-8111-111111111111",
+        data: { invitation_id: invitation.id, invitation_proof: invitationClaim },
+      }),
+    }));
+    expect(fetch).toHaveBeenCalledWith("https://api.resend.com/emails", expect.objectContaining({
+      method: "POST",
+      body: expect.stringContaining("Verify your RefineStack mailbox"),
     }));
     expect(rpc).toHaveBeenNthCalledWith(2, "finalize_invitation_mailbox_otp", expect.objectContaining({
       p_attempt_id: "44444444-4444-4444-8444-444444444444",
@@ -117,17 +131,50 @@ describe("invitation delivery and OTP lifecycle", () => {
   it("does not send another OTP when the atomic admission reports an active window", async () => {
     const invitationQuery = queryResult({ data: invitation, error: null });
     const rpc = vi.fn().mockResolvedValue({ data: null, error: { code: "55P03" } });
+    const generateLink = vi.fn();
     const admin = {
       from: vi.fn(() => invitationQuery),
       rpc,
-      auth: { admin: { listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }) } },
+      auth: { admin: {
+        listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
+        generateLink,
+      } },
     };
-    const signInWithOtp = vi.fn();
     mocks.createAdminClient.mockReturnValue(admin);
-    mocks.createClient.mockResolvedValue({ auth: { signInWithOtp } });
 
     await expect(requestInvitationMailboxOtp(invitation.id, invitationClaim))
       .rejects.toBeInstanceOf(InvitationVerificationRateLimitError);
-    expect(signInWithOtp).not.toHaveBeenCalled();
+    expect(generateLink).not.toHaveBeenCalled();
+  });
+
+  it("records a provider failure without consuming the invitation claim", async () => {
+    const invitationQuery = queryResult({ data: invitation, error: null });
+    const rpc = vi.fn()
+      .mockResolvedValueOnce({
+        data: { attempt_id: "44444444-4444-4444-8444-444444444444", email: invitation.email, should_create_user: true },
+        error: null,
+      })
+      .mockResolvedValueOnce({ data: { status: "failed" }, error: null });
+    const admin = {
+      from: vi.fn(() => invitationQuery),
+      rpc,
+      auth: { admin: {
+        listUsers: vi.fn().mockResolvedValue({ data: { users: [] }, error: null }),
+        generateLink: vi.fn().mockResolvedValue({
+          data: { properties: { action_link: "https://auth.example.com/verify?token=secret" } },
+          error: null,
+        }),
+      } },
+    };
+    mocks.createAdminClient.mockReturnValue(admin);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+
+    await expect(requestInvitationMailboxOtp(invitation.id, invitationClaim))
+      .rejects.toThrow("could not be sent");
+
+    expect(rpc).toHaveBeenNthCalledWith(2, "finalize_invitation_mailbox_otp", expect.objectContaining({
+      p_succeeded: false,
+      p_failure_code: "resend_http_503",
+    }));
   });
 });
