@@ -1,66 +1,66 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { getPublicEnv } from "@/lib/env";
-import { authCookies, legacyAuthCookies } from "@/lib/supabase/cookies";
 
-function getCookieValue(request: NextRequest, name: keyof typeof authCookies) {
-  return request.cookies.get(authCookies[name])?.value ?? request.cookies.get(legacyAuthCookies[name])?.value;
-}
+const protectedPrefixes = ["/dashboard", "/app"];
+const authPrefixes = ["/login"];
 
-async function currentAccessToken(request: NextRequest) {
-  const token = getCookieValue(request, "access");
-  const env = getPublicEnv();
-  if (token) {
-    const response = await fetch(`${env.supabaseUrl}/auth/v1/user`, {
-      cache: "no-store",
-      headers: { apikey: env.supabasePublishableKey, Authorization: `Bearer ${token}` },
-    });
-    if (response.ok) return { token };
-  }
-
-  const refreshToken = getCookieValue(request, "refresh");
-  if (!refreshToken) return null;
-  const refresh = await fetch(`${env.supabaseUrl}/auth/v1/token?grant_type=refresh_token`, {
-    method: "POST",
-    cache: "no-store",
-    headers: { apikey: env.supabasePublishableKey, "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh_token: refreshToken }),
-  });
-  if (!refresh.ok) return null;
-  return await refresh.json() as { access_token: string; refresh_token: string; expires_in: number };
+function isProtected(pathname: string) {
+  return protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 export async function updateSession(request: NextRequest) {
-  const session = await currentAccessToken(request);
-  const hasUser = Boolean(session);
-  const isProtected = request.nextUrl.pathname.startsWith("/dashboard");
-  const isAuthPage = request.nextUrl.pathname.startsWith("/login");
+  const pathname = request.nextUrl.pathname;
+  const hasAuthCookie = request.cookies.getAll().some(({ name }) => name.startsWith("sb-") && name.includes("auth-token"));
+  const publicSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-  if (!hasUser && isProtected) {
+  if ((!publicSupabaseUrl || !publishableKey) && !isProtected(pathname)) return NextResponse.next();
+  if (!publicSupabaseUrl || !publishableKey) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("error", "Authentication is temporarily unavailable.");
     return NextResponse.redirect(url);
   }
+  if (!hasAuthCookie && !isProtected(pathname) && !authPrefixes.some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next();
+  }
 
-  if (hasUser && isAuthPage) {
+  let response = NextResponse.next({ request });
+  const supabase = createServerClient(publicSupabaseUrl, publishableKey, {
+    cookies: {
+      getAll: () => request.cookies.getAll(),
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
+        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      },
+    },
+  });
+
+  const { data } = await supabase.auth.getClaims();
+  const hasUser = Boolean(data?.claims?.sub);
+
+  if (!hasUser && isProtected(pathname)) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("next", pathname);
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    redirectResponse.headers.set("Cache-Control", "private, no-store");
+    return redirectResponse;
+  }
+
+  const isPasswordUpdate = pathname === "/login" && request.nextUrl.searchParams.get("mode") === "update-password";
+  if (hasUser && !isPasswordUpdate && authPrefixes.some((prefix) => pathname.startsWith(prefix))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    url.search = "";
+    const redirectResponse = NextResponse.redirect(url);
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    redirectResponse.headers.set("Cache-Control", "private, no-store");
+    return redirectResponse;
   }
 
-  if (session && "access_token" in session) {
-    request.cookies.set(authCookies.access, session.access_token);
-    const response = NextResponse.next({ request });
-    const secure = process.env.NODE_ENV === "production";
-    response.cookies.set(authCookies.access, session.access_token, {
-      httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: session.expires_in,
-    });
-    response.cookies.set(authCookies.refresh, session.refresh_token, {
-      httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30,
-    });
-    response.cookies.delete(legacyAuthCookies.access);
-    response.cookies.delete(legacyAuthCookies.refresh);
-    return response;
-  }
-
-  return NextResponse.next();
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
 }

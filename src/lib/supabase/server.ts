@@ -1,99 +1,70 @@
+import "server-only";
+
+import { createServerClient } from "@supabase/ssr";
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { getPublicEnv } from "@/lib/env";
-import { authCookies, legacyAuthCookies } from "@/lib/supabase/cookies";
+import type { Database } from "@/types/database";
 
-type AuthUser = { id: string; email?: string; user_metadata?: { full_name?: string } };
-type AuthSession = { access_token: string; refresh_token: string; expires_in: number; user: AuthUser };
-
-function getCookieValue(
-  cookieStore: Awaited<ReturnType<typeof cookies>>,
-  name: keyof typeof authCookies,
-) {
-  return cookieStore.get(authCookies[name])?.value ?? cookieStore.get(legacyAuthCookies[name])?.value;
-}
-
-async function authFetch(path: string, init: RequestInit = {}) {
+export async function createClient() {
+  const cookieStore = await cookies();
   const env = getPublicEnv();
-  return fetch(`${env.supabaseUrl}/auth/v1${path}`, {
-    ...init,
-    cache: "no-store",
-    headers: {
-      apikey: env.supabasePublishableKey,
-      "Content-Type": "application/json",
-      ...init.headers,
+
+  return createServerClient<Database>(env.supabaseUrl, env.supabasePublishableKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
+        } catch {
+          // Server Components cannot write cookies. The request proxy refreshes them.
+        }
+      },
     },
   });
 }
 
-async function writeSession(session: AuthSession) {
-  const cookieStore = await cookies();
-  const secure = process.env.NODE_ENV === "production";
-  cookieStore.set(authCookies.access, session.access_token, {
-    httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: session.expires_in,
-  });
-  cookieStore.set(authCookies.refresh, session.refresh_token, {
-    httpOnly: true, secure, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30,
-  });
-}
+export function createAdminClient() {
+  const env = getPublicEnv();
+  const secret = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!secret) throw new Error("Supabase admin operations are not configured.");
 
-async function parseError(response: Response) {
-  const body = await response.json().catch(() => ({}));
-  return String(body.msg ?? body.message ?? body.error_description ?? "Authentication failed.");
-}
-
-export async function signInWithPassword(email: string, password: string) {
-  const response = await authFetch("/token?grant_type=password", {
-    method: "POST", body: JSON.stringify({ email, password }),
+  return createSupabaseClient<Database>(env.supabaseUrl, secret, {
+    auth: { autoRefreshToken: false, persistSession: false },
   });
-  if (!response.ok) return { error: await parseError(response) };
-  const session = await response.json() as AuthSession;
-  await writeSession(session);
-  return { user: session.user };
-}
-
-export async function signUpWithPassword(email: string, password: string, fullName: string) {
-  const response = await authFetch("/signup", {
-    method: "POST",
-    body: JSON.stringify({ email, password, data: { full_name: fullName } }),
-  });
-  if (!response.ok) return { error: await parseError(response) };
-  const result = await response.json() as Partial<AuthSession> & { user: AuthUser };
-  if (result.access_token && result.refresh_token && result.expires_in) {
-    await writeSession(result as AuthSession);
-  }
-  return { user: result.user, hasSession: Boolean(result.access_token) };
 }
 
 export async function getUser() {
-  const cookieStore = await cookies();
-  const token = getCookieValue(cookieStore, "access");
-  if (!token) return null;
-  const response = await authFetch("/user", { headers: { Authorization: `Bearer ${token}` } });
-  return response.ok ? await response.json() as AuthUser : null;
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getUser();
+  return error ? null : data.user;
 }
 
-export async function getWorkspace(token?: string) {
-  const cookieStore = await cookies();
-  const accessToken = token ?? getCookieValue(cookieStore, "access");
-  if (!accessToken) return null;
-  const env = getPublicEnv();
-  const response = await fetch(
-    `${env.supabaseUrl}/rest/v1/workspace_members?select=role,workspaces(id,name,slug)&limit=1`,
-    { cache: "no-store", headers: { apikey: env.supabasePublishableKey, Authorization: `Bearer ${accessToken}` } },
-  );
-  if (!response.ok) return null;
-  const memberships = await response.json() as Array<{ role: string; workspaces: { id: string; name: string; slug: string } | null }>;
-  return memberships[0] ?? null;
+export async function getClaims() {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  return error ? null : data?.claims ?? null;
+}
+
+export async function getWorkspace() {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("workspace_members")
+    .select("role,workspaces(id,name,slug)")
+    .limit(1)
+    .maybeSingle();
+  return error ? null : data;
+}
+
+export async function signInWithPassword(email: string, password: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  return error ? { error: error.message } : { user: data.user };
 }
 
 export async function signOutSession() {
-  const cookieStore = await cookies();
-  const token = getCookieValue(cookieStore, "access");
-  if (token) await authFetch("/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-  cookieStore.delete(authCookies.access);
-  cookieStore.delete(authCookies.refresh);
-  cookieStore.delete(legacyAuthCookies.access);
-  cookieStore.delete(legacyAuthCookies.refresh);
+  const supabase = await createClient();
+  await supabase.auth.signOut({ scope: "local" });
 }
-
-export const authCookieNames = authCookies;

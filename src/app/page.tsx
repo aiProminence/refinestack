@@ -59,10 +59,10 @@ export default function Home() {
 
       <section className="truth shell">
         <div>
-          <span className="eyebrow light">Product status</span>
+          <span className="eyebrow light">Evidence standard</span>
           <h2>Built on observations, not invented scores.</h2>
         </div>
-        <p>{brand.name} is in private MVP development. The application will only display a metric when a real provider is configured and a successful, provenance-backed observation exists.</p>
+        <p>The application only displays a metric when a real provider is configured and a successful, provenance-backed observation exists. Failed and unavailable captures remain visible but never inflate an answer-rate denominator.</p>
       </section>
 
       <section className="access shell" id="access">
@@ -73,7 +73,8 @@ export default function Home() {
 
       <footer className="shell">
         <Link className="wordmark" href="/">{brand.name}<span>.</span></Link>
-        <p>{brand.descriptor} · Private MVP</p>
+        <p>{brand.descriptor}</p>
+        <nav aria-label="Legal navigation"><Link href="/privacy">Privacy</Link><Link href="/security">Security</Link><Link href="/terms">Terms</Link></nav>
       </footer>
     </main>
   );
