@@ -17,7 +17,7 @@ test("public routes, navigation, legal copy, and API documentation remain usable
   });
 
   await page.goto("/");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("See which brands AI recommends");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Become prominent where AI shapes the shortlist");
   await expect(page.getByRole("link", { name: /RefineStack home/i })).toBeVisible();
   await expectNoSeriousAccessibilityViolations(page);
   await page.getByRole("link", { name: "Security" }).click();
