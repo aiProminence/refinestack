@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(resolve("supabase/migrations/20260816160000_supabase_worker_scheduler.sql"), "utf8");
+const namespaceFix = readFileSync(resolve("supabase/migrations/20260816160500_move_pg_net_extension.sql"), "utf8");
 
 describe("Supabase worker scheduler contract", () => {
   it("schedules the durable worker every five minutes through pg_cron and pg_net", () => {
@@ -21,5 +22,12 @@ describe("Supabase worker scheduler contract", () => {
     expect(migration).toContain("security definer\nset search_path = ''");
     expect(migration).toContain("revoke all on function private.dispatch_refinestack_worker() from public, anon, authenticated, service_role");
     expect(migration).not.toMatch(/Bearer [A-Za-z0-9_-]{32,}/u);
+  });
+
+  it("keeps the pg_net extension out of the public schema without dropping pending requests", () => {
+    expect(namespaceFix).toContain("if exists (select 1 from net.http_request_queue)");
+    expect(namespaceFix).toContain("drop extension pg_net");
+    expect(namespaceFix).toContain("create extension pg_net with schema extensions");
+    expect(namespaceFix).toContain("revoke all on function private.dispatch_refinestack_worker() from public, anon, authenticated, service_role");
   });
 });
