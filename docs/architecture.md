@@ -158,6 +158,8 @@ Required platform variables:
 - `NEXT_PUBLIC_APP_URL`
 - `APP_ENCRYPTION_KEY`
 - `WORKER_SECRET`
+- `CRON_SECRET`
+- `API_CURSOR_SECRET`
 - `WEBHOOK_SIGNING_PEPPER`
 
 At least one provider must be configured for real captures:
@@ -167,3 +169,7 @@ At least one provider must be configured for real captures:
 - `SERPAPI_API_KEY` for Google AI Overview capture
 
 The application remains usable for configuration and historical inspection when a provider is unavailable, but the preflight gate blocks selecting that provider.
+
+### Worker scheduling
+
+The durable worker is invoked every five minutes by Supabase Cron rather than Vercel Cron. `pg_cron` calls `private.dispatch_refinestack_worker()`, which reads the verified HTTPS endpoint and bearer credential from the `refinestack_worker_url` and `refinestack_worker_secret` Vault entries. The function is not executable by public, authenticated, anonymous, or service-role callers. Until both Vault entries are configured, the scheduled job is inert.
